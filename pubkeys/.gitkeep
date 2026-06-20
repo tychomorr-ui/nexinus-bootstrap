@@ -1,0 +1,3 @@
+# Node Ed25519 PUBLIC keys live here, one file per node: <node>.pub
+# Public keys are not secrets — committing them in plaintext is correct and safe.
+# Private keys NEVER appear in this repo. See ../ATTESTATION.md, THE ONE RULE.

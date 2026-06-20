@@ -1,17 +1,16 @@
 /*
- * ZAPIER "Code by Zapier" step (Run JavaScript) — the live second-witness refresher.
+ * ZAPIER "Code by Zapier" step — live second-witness refresher.
  *
- * HOW TO USE:
- * 1. Zap trigger: Schedule by Zapier → every 15 minutes.
- * 2. Action: Code by Zapier → Run JavaScript → paste this whole file.
- * 3. Action: GitHub → "Update File" (or Webhooks PUT to the GitHub contents API)
- *    on repo tychomorr-ui/nexinus-bootstrap, path status.json,
- *    content = {{output__content}} from this step.
+ * HARDENED for Finding 1B (timestamp authenticity):
+ *  - NO optimistic timestamps. A node's `measured_at` is stamped ONLY after its
+ *    own probe round-trip completes. A hung/failed probe yields status "down"
+ *    and a CURRENT measured_at for that failure (an honest, fresh "down") — it
+ *    never reuses a last-known "up", and it never stamps a node it didn't reach.
+ *  - The wrapper `generated` is just the run time; the reader gates each node on
+ *    its OWN measured_at, so a forged wrapper can't vouch for unprobed nodes.
  *
- * It probes each endpoint from Zapier's servers (an INDEPENDENT vantage point
- * from the app's browser probe — a real second witness), then emits the exact
- * JSON shape Truth Point's ExternalWitness expects. No fabricated data: a node
- * that doesn't answer is reported down.
+ * Wire-up: Schedule (15 min) → this Code step → GitHub "Update File" status.json
+ *          with content = {{output__content}}.
  */
 
 const ENDPOINTS = [
@@ -31,15 +30,16 @@ async function probe(ep) {
     clearTimeout(timer);
     const latencyMs = Date.now() - t0;
     let healthOk = null;
-    try {
-      const text = await res.text();
-      if (/"ok"\s*:\s*true/.test(text)) healthOk = true;
-    } catch (_) {}
+    try { if (/"ok"\s*:\s*true/.test(await res.text())) healthOk = true; } catch (_) {}
     const up = res.ok;
-    return { name: ep.name, status: up ? "up" : "down", reachable: up, latencyMs: up ? latencyMs : null, healthOk };
+    // measured_at stamped HERE — only because this probe actually completed.
+    return { name: ep.name, status: up ? "up" : "down", reachable: up,
+             latencyMs: up ? latencyMs : null, healthOk, measured_at: new Date().toISOString() };
   } catch (_) {
     clearTimeout(timer);
-    return { name: ep.name, status: "down", reachable: false, latencyMs: null, healthOk: null };
+    // Probe failed/timed out: honest fresh "down". Never reuse a prior "up".
+    return { name: ep.name, status: "down", reachable: false, latencyMs: null,
+             healthOk: null, measured_at: new Date().toISOString() };
   }
 }
 
@@ -52,6 +52,4 @@ const feed = {
   nodes,
 };
 
-// Zapier Code steps return via `output`. The GitHub Update File action reads
-// output.content as the new file body.
 output = { content: JSON.stringify(feed, null, 2) };

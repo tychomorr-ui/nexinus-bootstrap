@@ -1,11 +1,11 @@
 {
-  "generated": "2026-06-20T01:12:10Z",
-  "source": "independent external probe (snapshot) — refresh via scheduled monitor for live witness",
+  "generated": "2026-06-20T01:44:00Z",
+  "source": "independent external probe (snapshot) — refresh via Zapier zapier-refresh.js for live witness",
   "nodes": [
     { "name": "xinus-monarch (sovereign · monarch.xinus.one)", "status": "down", "reachable": false, "latencyMs": null },
-    { "name": "xinus-monarch (bolt endpoint)", "status": "up", "reachable": true, "latencyMs": 341 },
-    { "name": "valkyrie.nexinus.net", "status": "up", "reachable": true, "latencyMs": 178 },
-    { "name": "xinus.one", "status": "up", "reachable": true, "latencyMs": 112 },
+    { "name": "xinus-monarch (bolt endpoint)", "status": "up", "reachable": true, "latencyMs": 367 },
+    { "name": "valkyrie.nexinus.net", "status": "up", "reachable": true, "latencyMs": 171 },
+    { "name": "xinus.one", "status": "up", "reachable": true, "latencyMs": 699 },
     { "name": "tesseract-a (nexinus.net)", "status": "down", "reachable": false, "latencyMs": null }
   ]
 }

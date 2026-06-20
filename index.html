@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nexinus — node status</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; background:#0a0a0a; color:#e6e6e6;
+         font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; padding:40px 20px; }
+  .wrap { max-width:720px; margin:0 auto; }
+  h1 { font-size:18px; letter-spacing:.04em; margin:0 0 4px; }
+  .sub { color:#8a8a8a; font-size:12px; margin-bottom:20px; }
+  .banner { border-radius:10px; padding:12px 14px; margin-bottom:20px; font-size:13px; }
+  .ok   { border:1px solid #2e7d57; background:#12251c; color:#7fe0b0; }
+  .warn { border:1px solid #8a6d1f; background:#241f0e; color:#f0d68a; }
+  .bad  { border:1px solid #7d2e2e; background:#251212; color:#f0a0a0; }
+  .row { display:flex; justify-content:space-between; align-items:center;
+         border:1px solid #222; border-radius:10px; padding:12px 14px; margin-bottom:8px; }
+  .name { font-size:13px; color:#cfcfcf; }
+  .pill { font-size:11px; font-weight:700; letter-spacing:.1em; padding:3px 9px; border-radius:999px; }
+  .up { color:#7fe0b0; background:#12251c; } .down { color:#f0a0a0; background:#251212; }
+  .unk { color:#9a9a9a; background:#1c1c1c; }
+  .foot { color:#6a6a6a; font-size:11px; margin-top:18px; line-height:1.6; }
+  a { color:#7fb0e0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Nexinus — node status</h1>
+  <div class="sub">Independent status page. Hosted on GitHub Pages, not on the servers it watches — so it stays up even if every node is down.</div>
+  <div id="banner" class="banner warn">Loading status…</div>
+  <div id="rows"></div>
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+// Freshness contract: a snapshot is only true as of when it was written.
+// Past TTL, every node is forced UNKNOWN — a stale "up" is never shown as live.
+var STALE_AFTER_MS = 32 * 60 * 1000;
+var FEED = "./status.json";
+
+function ageLabel(ms){ var m=Math.floor(ms/60000); if(m<60) return m+"m"; var h=Math.floor(m/60); return h+"h "+(m%60)+"m"; }
+function up(it){
+  var s=(it.status||"").toLowerCase();
+  if(it.reachable===true||it.ok===true||s==="up"||s==="online"||s==="operational"||s==="ok") return true;
+  if(it.reachable===false||it.ok===false||s==="down"||s==="offline") return false;
+  return null;
+}
+function render(){
+  fetch(FEED,{cache:"no-store"}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
+    var ts = Date.parse(d.generated||d.last_measured_at||d.ts||"");
+    var age = isNaN(ts) ? null : (Date.now()-ts);
+    var stale = age==null || age>STALE_AFTER_MS;
+    var nodes = d.nodes||d.monitors||d.components||[];
+    var banner=document.getElementById("banner"), rows=document.getElementById("rows"), foot=document.getElementById("foot");
+    rows.innerHTML="";
+    nodes.forEach(function(it){
+      var u = stale ? null : up(it);
+      var cls = u===true?"up":u===false?"down":"unk";
+      var lab = u===true?"UP":u===false?"DOWN":"UNKNOWN";
+      rows.innerHTML += '<div class="row"><span class="name">'+(it.name||it.url||"node")+'</span><span class="pill '+cls+'">'+lab+'</span></div>';
+    });
+    if(stale){ banner.className="banner bad"; banner.textContent="STALE — last measured "+(age==null?"(undated)":ageLabel(age)+" ago")+". Status forced to UNKNOWN; a stale snapshot is never shown as live."; }
+    else { var upN=nodes.filter(function(n){return up(n)===true;}).length; banner.className="banner ok"; banner.textContent=upN+"/"+nodes.length+" nodes up · measured "+ageLabel(age)+" ago · fresh"; }
+    foot.innerHTML = "Source: <a href='"+FEED+"'>status.json</a> · refreshed by an independent monitor · no faked green: anything unverified shows UNKNOWN or DOWN.";
+  }).catch(function(){
+    var b=document.getElementById("banner"); b.className="banner bad"; b.textContent="Status feed unreachable. No data — not assuming up.";
+  });
+}
+render(); setInterval(render, 30000);
+</script>
+</body>
+</html>
